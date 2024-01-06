@@ -1,0 +1,12 @@
+FROM rust:1.75-alpine as builder
+WORKDIR /usr/src/app
+RUN apk add --no-cache musl-dev
+COPY . .
+RUN cargo install --path .
+
+FROM alpine:latest
+WORKDIR /usr/src/app
+COPY --from=builder /usr/local/cargo/bin/smartGO-api .
+COPY --from=builder /usr/src/app/app.db .
+EXPOSE 8080
+CMD ["./smartGO-api"]

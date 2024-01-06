@@ -1,0 +1,16 @@
+meta {
+  name: get stop times
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8080/api/route/12230124-BR/stop/RU?day=20240104&time=14:27:00
+  body: none
+  auth: none
+}
+
+query {
+  day: 20240104
+  time: 14:27:00
+}
