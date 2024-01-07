@@ -4,11 +4,9 @@
 
 	initializeStores();
 	const drawerStore = getDrawerStore();
-
 	const drawerOpen = () => {
 		drawerStore.open();
 	};
-
 	const drawerClose = () => {
 		drawerStore.close();
 	};
