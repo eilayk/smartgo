@@ -1,7 +1,6 @@
-import { env } from "$env/dynamic/public";
 import type { Route, Stop, StopTimeResponse } from "./models";
 
-const PUBLIC_API_URL = env.PUBLIC_API_URL;
+const PUBLIC_API_URL = import.meta.env.VITE_API_URL;
 
 export const getStops = async (fetch: (url: string) => Promise<Response> ): Promise<Stop[]> => {
     try {

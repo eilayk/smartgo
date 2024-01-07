@@ -29,9 +29,14 @@ jobs:
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "/smartGO-ui" # App source code path
-          api_location: "smartGO-ui\node_modules\svelte-adapter-azure-swa\files\api" # Api source code path - optional
+          api_location: "/smartGO-ui/build/server" # Api source code path - optional
           output_location: "build/static" # Built app content directory - optional
+          skip_api_build: true
           ###### End of Repository/Build Configurations ######
+    env:
+      VITE_API_URL: "https://smartgo-api.salmonbeach-e9c906d8.canadacentral.azurecontainerapps.io"
+    outputs:
+      preview_url: "${{ steps.builddeploy.outputs.static_web_app_url }}"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
