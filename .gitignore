@@ -12,3 +12,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 smartGO-api/target
+
+gtfs-to-sqlite/target
+gtfs-to-sqlite/app.db
