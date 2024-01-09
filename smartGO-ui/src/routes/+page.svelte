@@ -13,7 +13,6 @@
 	});
 
 	const onStopSelection = (event:  CustomEvent<AutocompleteOption<Stop>>) => {
-		// console.log("selected", event.detail.value)
 		goto(`/stop?stopId=${event.detail.value.stopId}`);
 	}
 </script>
