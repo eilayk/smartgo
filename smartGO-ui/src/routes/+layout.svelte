@@ -16,7 +16,7 @@
 	<nav class="list-nav p-4">
 		<ul>
 			<li><a href="/" on:click={drawerClose}>Select stop</a></li>
-			<li><a href="/route/" on:click={drawerClose}>Select route</a></li>
+			<li><a href="/routes/" on:click={drawerClose}>Select route</a></li>
 		</ul>
 	</nav>
 </Drawer>
@@ -39,7 +39,7 @@
 		</svelte:fragment>
 		<div>
 			<a class="hidden lg:inline hover:bg-surface-600 p-4 text-lg" href="/">Stops</a>
-			<a class="hidden lg:inline hover:bg-surface-600 p-4 text-lg" href="/route/">Routes</a>
+			<a class="hidden lg:inline hover:bg-surface-600 p-4 text-lg" href="/routes/">Routes</a>
 		</div>
 	</AppBar>
 	<div class="w-full h-full overflow-y-auto">

@@ -1,22 +1,38 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-    import type { PageData } from './$types';
+	import { onMount } from 'svelte';
+	import type { Stop } from '$lib/models';
+	import { getStopsPerRoute } from '$lib/api';
+	import { page } from '$app/stores';
     
-    export let data: PageData;
+    let stops: Stop[] = [];
+    let routeId: string;
 
-    const onRouteClick = (routeId: string) => {
-        goto(`/route/${routeId}`);
+    onMount(async () => {
+        let routeIdOrNull = $page.url.searchParams.get('routeId');
+        if (!routeIdOrNull) {
+            goto('/routes');
+        } else {
+            routeId = routeIdOrNull;
+        }
+        stops = await getStopsPerRoute(fetch, routeId);
+    });
+
+    const onStopClick = (routeId: string, stopId: string) => {
+        goto(`stopTime?stopId=${stopId}&routeId=${routeId}`)
     }
 </script>
 
-<div class="card p-4">
-    <ul class="list">
-        {#each data.routes as route}
-            <li class="p-2 m-1 hover:bg-surface-400">
-                <button on:click={() => onRouteClick(route.routeId)}>
-                    {route.routeName}
-                </button>
-            </li>
-        {/each}
-    </ul>
-</div>
+{#if stops.length > 0} 
+    <div class="card p-4">
+        <ul class="list">
+            {#each stops as stop}
+                <li class="p-2 m-1 hover:bg-surface-400">
+                    <button on:click={() => onStopClick(routeId, stop.stopId)}>
+                        {stop.stopName}
+                    </button>
+                </li>
+            {/each}
+        </ul>
+    </div>
+{/if}

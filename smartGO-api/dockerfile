@@ -4,7 +4,7 @@ RUN apk add --no-cache musl-dev
 COPY . .
 RUN cargo install --path .
 
-FROM alpine:latest
+FROM alpine:3.6
 WORKDIR /usr/src/app
 COPY --from=builder /usr/local/cargo/bin/smartGO-api .
 COPY --from=builder /usr/src/app/app.db .

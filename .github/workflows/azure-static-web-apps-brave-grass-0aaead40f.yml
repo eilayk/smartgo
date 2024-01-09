@@ -4,8 +4,14 @@ on:
   push:
     branches:
       - main
+    paths:
+      - smartGO-ui/**
+      - .github/workflows/azure-static-web-apps-brave-grass-0aaead40f.yml
   pull_request:
     types: [opened, synchronize, reopened, closed]
+    paths:
+      - smartGO-ui/**
+      - .github/workflows/azure-static-web-apps-brave-grass-0aaead40f.yml
     branches:
       - main
 

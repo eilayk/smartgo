@@ -1,5 +1,7 @@
 /target
 .env
-api-testing
+/api-testing
 .git
 .gitignores
+azure.md
+README.md
