@@ -21,8 +21,7 @@ pub async fn create_router() -> Router {
         .allow_methods([Method::GET])
         .allow_origin(Any);
 
-    // let api_key = std::env::var("GO_API_KEY").expect("failed to retrieve api key");
-    let api_key = "";
+    let api_key = std::env::var("GO_API_KEY").expect("failed to retrieve api key");
     let api = GoApi::new(&api_key);
 
     let state = AppState { db, api };
