@@ -50,7 +50,6 @@ on:
     paths:
       - 'smartgo-API/**'
       - '.github/workflows/google-cloudrun-docker.yml'
-
 env:
   PROJECT_ID: '${{ secrets.GCLOUD_PROJECT_ID }}' # TODO: update Google Cloud project id
   GAR_LOCATION: us-central1 # TODO: update Artifact Registry location
@@ -59,58 +58,91 @@ env:
 
 jobs:
   deploy:
-    # Add 'id-token' with the intended permissions for workload identity federation
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+        - name: Checkout
+          uses: actions/checkout@v2
+          
+        - name: Set up Google Cloud SDK
+          uses: google-github-actions/setup-gcloud@master
+          with:
+            project_id: ${{ env.PROJECT_ID}}
+            service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+            export_default_credentials: true
 
-      # - name: Google Auth
-      #   id: auth
-      #   uses: 'google-github-actions/auth@v0'
-      #   with:
-      #     token_format: 'access_token'
-      #     workload_identity_provider: '${{ secrets.WIF_PROVIDER }}' # e.g. - projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
-      #     service_account: '${{ secrets.WIF_SERVICE_ACCOUNT }}' # e.g. - my-service-account@my-project.iam.gserviceaccount.com
+        - name: Configure docker for GCP
+          run: gcloud auth configure-docker
 
-      # NOTE: Alternative option - authentication via credentials json
-      - name: Google Auth
-        id: auth
-        uses: 'google-github-actions/auth@v0'
-        with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+        - name: Build and push Docker image
+          uses: docker/build-push-action@v2
+          with:
+            context: ./smartGO-api
+            push: true
+            tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/&{{ env.SERVICE}}:latest
 
-      # BEGIN - Docker auth and build (NOTE: If you already have a container image, these Docker steps can be omitted)
+        - name: Deploy to Cloud Run
+          uses: google-github-actions/deploy-cloudrun@main
+          with:
+            image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/&{{ env.SERVICE}}:latest
+            service: $${{ env.SERVICE }} 
+            region: $${{ env.REGION }}
+            platform: managed
+            allow-unauthenticated: true
 
-      # Authenticate Docker to Google Cloud Artifact Registry
-      - name: Docker Auth
-        id: docker-auth
-        uses: 'docker/login-action@v1'
-        with:
-          username: 'oauth2accesstoken'
-          password: '${{ steps.auth.outputs.access_token }}'
-          registry: '${{ env.GAR_LOCATION }}-docker.pkg.dev'
+# jobs:
+#   deploy:
+#     # Add 'id-token' with the intended permissions for workload identity federation
+#     permissions:
+#       contents: 'read'
+#       id-token: 'write'
 
-      - name: Build and Push Container
-        run: |-
-          docker build -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}" ./
-          docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}"
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v2
 
-      # END - Docker auth and build
+#       # - name: Google Auth
+#       #   id: auth
+#       #   uses: 'google-github-actions/auth@v0'
+#       #   with:
+#       #     token_format: 'access_token'
+#       #     workload_identity_provider: '${{ secrets.WIF_PROVIDER }}' # e.g. - projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider
+#       #     service_account: '${{ secrets.WIF_SERVICE_ACCOUNT }}' # e.g. - my-service-account@my-project.iam.gserviceaccount.com
 
-      - name: Deploy to Cloud Run
-        id: deploy
-        uses: google-github-actions/deploy-cloudrun@v0
-        with:
-          service: ${{ env.SERVICE }}
-          region: ${{ env.REGION }}
-          # NOTE: If using a pre-built image, update the image name here
-          image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}
+#       # NOTE: Alternative option - authentication via credentials json
+#       - name: Google Auth
+#         id: auth
+#         uses: 'google-github-actions/auth@v0'
+#         with:
+#           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
-      # If required, use the Cloud Run url output in later steps
-      - name: Show Output
-        run: echo ${{ steps.deploy.outputs.url }}
+#       # BEGIN - Docker auth and build (NOTE: If you already have a container image, these Docker steps can be omitted)
+
+#       # Authenticate Docker to Google Cloud Artifact Registry
+#       - name: Docker Auth
+#         id: docker-auth
+#         uses: 'docker/login-action@v1'
+#         with:
+#           username: 'oauth2accesstoken'
+#           password: '${{ steps.auth.outputs.access_token }}'
+#           registry: '${{ env.GAR_LOCATION }}-docker.pkg.dev'
+
+#       - name: Build and Push Container
+#         run: |-
+#           docker build -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}" ./
+#           docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}"
+
+#       # END - Docker auth and build
+
+#       - name: Deploy to Cloud Run
+#         id: deploy
+#         uses: google-github-actions/deploy-cloudrun@v0
+#         with:
+#           service: ${{ env.SERVICE }}
+#           region: ${{ env.REGION }}
+#           # NOTE: If using a pre-built image, update the image name here
+#           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}
+
+#       # If required, use the Cloud Run url output in later steps
+#       - name: Show Output
+#         run: echo ${{ steps.deploy.outputs.url }}
