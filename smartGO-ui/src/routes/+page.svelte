@@ -17,6 +17,7 @@
 	}
 </script>
 
+
 <input class="input p-4" type="search" name="demo" bind:value={searchStopsInput} placeholder="Search stop..." />
 <div class="card w-full overflow-y-auto p-4 my-2" tabindex="-1">
 	<Autocomplete bind:input={searchStopsInput} options={autoCompleteStop} on:selection={onStopSelection} />

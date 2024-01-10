@@ -40,7 +40,7 @@ jobs:
           skip_api_build: true
           ###### End of Repository/Build Configurations ######
     env:
-      VITE_API_URL: "https://smartgo-api.salmonbeach-e9c906d8.canadacentral.azurecontainerapps.io"
+      VITE_API_URL: "https://smartgo-api-uqyusptska-uc.a.run.app"
     outputs:
       preview_url: "${{ steps.builddeploy.outputs.static_web_app_url }}"
 
