@@ -49,6 +49,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'smartgo-API/**'
+      - '.github/workflows/google-cloudrun-docker.yml'
 
 env:
   PROJECT_ID: '${{ secrets.GCLOUD_PROJECT_ID }}' # TODO: update Google Cloud project id
