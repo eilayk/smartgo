@@ -54,6 +54,7 @@ env:
   PROJECT_ID: '${{ secrets.GCLOUD_PROJECT_ID }}' # TODO: update Google Cloud project id
   GAR_LOCATION: us-central1 # TODO: update Artifact Registry location
   SERVICE: smartgo-API # TODO: update Cloud Run service name
+  REPO: smartgo
   REGION: us-central1 # TODO: update Cloud Run service region
 
 jobs:
@@ -78,12 +79,12 @@ jobs:
           with:
             context: ./smartGO-api
             push: true
-            tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:latest
+            tags: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}:latest
 
         - name: Deploy to Cloud Run
           uses: google-github-actions/deploy-cloudrun@main
           with:
-            image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:latest
+            image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}:latest
             service: ${{ env.SERVICE }} 
             region: ${{ env.REGION }}
             platform: managed
