@@ -49,8 +49,8 @@ on:
     branches: [ "main" ]
 
 env:
-  PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }} # TODO: update Google Cloud project id
-  GAR_LOCATION: ${{ secrets.GCLOUD_ARTIFACT_REGISTRY } # TODO: update Artifact Registry location
+  PROJECT_ID: '${{ secrets.GCLOUD_PROJECT_ID }}' # TODO: update Google Cloud project id
+  GAR_LOCATION: '${{ secrets.GCLOUD_ARTIFACT_REGISTRY }}' # TODO: update Artifact Registry location
   SERVICE: smartgo-API # TODO: update Cloud Run service name
   REGION: us-central1 # TODO: update Cloud Run service region
 
