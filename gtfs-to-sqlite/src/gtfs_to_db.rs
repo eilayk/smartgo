@@ -3,11 +3,14 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::Path;
+use chrono::Local;
 use zip::ZipArchive;
 use zip::read::ZipFile;
 use rusqlite::Connection;
 use rusqlite::named_params;
 use rustc_hash::FxHashMap;
+
+use crate::parse_mmyy;
 
 struct Stop {
     stop_id: String,
@@ -51,7 +54,6 @@ pub fn gen_db(mut zip: ZipArchive<File>) {
     let db_path = Path::new("app.db");
 
     // create db
-    // let mut conn = Connection::open_in_memory().expect("failed to create db");
     let mut conn = Connection::open(db_path).expect("failed to create db");
     conn.execute_batch(r"
         PRAGMA journal_mode = OFF;
@@ -67,15 +69,15 @@ pub fn gen_db(mut zip: ZipArchive<File>) {
     populate_stops(&mut conn, stop_file).expect("failed to populate stops table");
 
     let route_file = zip.by_name("routes.txt").expect("failed to open routes.txt");
-    let routes_map = populate_routes(&mut conn, route_file).expect("failed to populate routes table");
+    let relevant_str = get_relevant_str(route_file);
+    let route_file = zip.by_name("routes.txt").expect("failed to open routes.txt");
+    let routes_map = populate_routes(&mut conn, route_file, &relevant_str).expect("failed to populate routes table");
 
     let trip_file = zip.by_name("trips.txt").expect("failed to open trips.txt");
     let trips_map = populate_trips(&mut conn, trip_file, routes_map).expect("failed to populate trips table");
 
     let stop_times_file = zip.by_name("stop_times.txt").expect("failed to open stop_times.txt");
     populate_stop_times(&mut conn, stop_times_file, trips_map).expect("failed to populate stop_times table");
-
-    create_virtual_table(&mut conn).expect("failed to create fts table");
 }
 
 fn create_db_tables(conn: &mut Connection) -> rusqlite::Result<()>{
@@ -117,7 +119,6 @@ fn populate_stops(conn: &mut Connection, file: ZipFile) -> Result<(), rusqlite::
     let mut buf = String::new();
 
     let tx = conn.transaction()?;
-{}
     let mut statement = tx.prepare(r"
         INSERT INTO stops
             VALUES (:stop_id, :stop_name)
@@ -152,7 +153,7 @@ fn populate_stops(conn: &mut Connection, file: ZipFile) -> Result<(), rusqlite::
     tx.commit()
 }
 
-fn populate_routes(conn: &mut Connection, file: ZipFile) -> Result<FxHashMap<String, Route>, rusqlite::Error> {
+fn populate_routes(conn: &mut Connection, file: ZipFile, relevant_str: &str) -> Result<FxHashMap<String, Route>, rusqlite::Error> {
     let mut reader = BufReader::new(file);
     let mut buf = String::new();
 
@@ -176,7 +177,7 @@ fn populate_routes(conn: &mut Connection, file: ZipFile) -> Result<FxHashMap<Str
 
         let params: Vec<&str> = buf.split(',').collect();
         let is_train_route = is_train_route( params.get(4).unwrap().parse::<u8>().unwrap());
-        let is_relevant = params.get(0).unwrap().contains("01240424"); // added for current db
+        let is_relevant = params.get(0).unwrap().contains(relevant_str);
         if is_train_route && is_relevant {
             let route = Route {
                 route_id: params.get(0).unwrap().to_string(),
@@ -197,6 +198,37 @@ fn populate_routes(conn: &mut Connection, file: ZipFile) -> Result<FxHashMap<Str
     tx.commit()?;
     Ok(map)
     // buf.split(',');
+}
+
+fn get_relevant_str(file: ZipFile) -> String {
+    let mut reader = BufReader::new(file);
+    let mut buf = String::new();
+    // skip first line
+    reader.read_line(&mut buf).unwrap();
+    loop {
+        buf.clear();
+        let bytes = reader.read_line(&mut buf).unwrap();
+        if bytes == 0 {
+            break;
+        }
+
+        let params: Vec<&str> = buf.split(',').collect();
+        let is_train_route = is_train_route( params.get(4).unwrap().parse::<u8>().unwrap());
+        let date_range_str = params.get(0).unwrap().split("-").collect::<Vec<&str>>()[0];
+        if is_train_route {
+            let start_date_str = &date_range_str[..4];
+            let end_date_str = &date_range_str[4..];
+            let start_date = parse_mmyy(start_date_str).unwrap();
+            let end_date = parse_mmyy(end_date_str).unwrap();
+            let today = Local::now().naive_local().date();
+            if today >= start_date && today <= end_date {
+                return date_range_str.to_owned()
+                // return 
+            }
+        }
+
+    }
+    panic!("No relevant date range found")
 }
 
 fn populate_trips(conn: &mut Connection, file: ZipFile, map_routes: FxHashMap<String, Route>) -> Result<FxHashMap<String, Trip>, rusqlite::Error> {
@@ -291,13 +323,13 @@ fn populate_stop_times(conn: &mut Connection, file: ZipFile, map: FxHashMap<Stri
     tx.commit()
 }
 
-fn create_virtual_table(conn: &Connection) -> rusqlite::Result<()> {
-    conn.execute_batch(r"
-        CREATE VIRTUAL TABLE stops_fts
-            USING FTS5(stop_id, stop_name, tokenize='trigram');
-        INSERT INTO stops_fts 
-            SELECT stop_id, stop_name FROM Stops
-    ")?;
+// fn create_virtual_table(conn: &Connection) -> rusqlite::Result<()> {
+//     conn.execute_batch(r"
+//         CREATE VIRTUAL TABLE stops_fts
+//             USING FTS5(stop_id, stop_name, tokenize='trigram');
+//         INSERT INTO stops_fts 
+//             SELECT stop_id, stop_name FROM Stops
+//     ")?;
 
-    Ok(())
-}
+//     Ok(())
+// }

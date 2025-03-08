@@ -1,25 +1,17 @@
-use gtfs::{initialize_content_directories, get_zip_byte_content, create_zip_from_bytes, gen_db_from_zip};
+use std::fs::File;
 
-
-// fn main() {
-//     let target = "https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/GO-GTFS.zip";
-//     let path = Path::new("./download/GTFS.zip");
-
-//     let resp = reqwest::blocking::get(target).unwrap();
-//     let mut file = File::create(path).unwrap();
-//     let content = resp.bytes().unwrap();
-//     file.write(&content);
-//     // std::io:copy(&mut content, &mut file);
-// }
+use gtfs::{create_zip_from_bytes, gen_db_from_zip, get_zip_byte_content_from_go, gtfs_recently_fetched, initialize_content_directories, open_zip};
 
 fn main() {
     initialize_content_directories();
-
+    let zip: File;
     // get from go
-    // let bytes = get_zip_byte_content();
-    // let zip = create_zip_from_bytes(bytes);
-    // local testing
-    let zip = create_zip_from_bytes();
-    
+    if !gtfs_recently_fetched() {
+        let bytes = get_zip_byte_content_from_go();
+        zip = create_zip_from_bytes(bytes);
+    } else {
+        zip = open_zip();
+    }
+
     gen_db_from_zip(zip);
 }

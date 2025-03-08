@@ -10,9 +10,11 @@ smartgo-ui/package
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+.idea
 
 smartGO-api/target
 smartGO-api/.env
 
 gtfs-to-sqlite/target
 gtfs-to-sqlite/app.db
+gtfs-to-sqlite/content
