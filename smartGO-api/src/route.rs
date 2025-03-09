@@ -1,21 +1,34 @@
-use axum::http::Method;
-use sqlx::sqlite::SqlitePoolOptions;
+use std::net::SocketAddr;
+
+use axum::extract::Request;
+use axum::http::{Method, StatusCode};
+use axum::middleware;
+use axum::routing::post;
 use axum::{
     routing::get,
     Router,
+    response::Response,
+    middleware::Next,
+    extract::ConnectInfo,
 };
 use tower_http::cors::{CorsLayer, Any};
 
 use crate::handlers;
 use crate::models::AppState;
 use crate::go_api::GoApi;
+use crate::db_provider::DbProvider;
+
+// middleware to check that request came from localhost
+async fn localhost_middleware(ConnectInfo(addr): ConnectInfo<SocketAddr>, req: Request, next: Next) -> Result<Response, StatusCode>{
+    if addr.ip().is_loopback() {
+        return Ok(next.run(req).await);
+    }
+    
+    Err(StatusCode::FORBIDDEN)
+}
 
 pub async fn create_router() -> Router {
-    let db =  SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect("app.db")
-        .await
-        .expect("Failed to initialize SQLite");
+    let db_provider = DbProvider::new().await;
 
     let cors = CorsLayer::new()
         .allow_methods([Method::GET])
@@ -24,7 +37,7 @@ pub async fn create_router() -> Router {
     let api_key = std::env::var("GO_API_KEY").expect("failed to retrieve api key");
     let api = GoApi::new(&api_key);
 
-    let state = AppState { db, api };
+    let state = AppState { db_provider, api };
 
     Router::new()
         .route("/api/stops", get(handlers::get_stops))
@@ -34,6 +47,8 @@ pub async fn create_router() -> Router {
         .route("/api/routes", get(handlers::get_all_routes))
         .route("/api/route/:route_id", get(handlers::get_ordered_stops_for_route))
         .route("/api/route/:route_id/stop/:stop_id", get(handlers::get_stop_times))
+        .route("/api/admin/reload_db", post(handlers::reload_db))
+        .route_layer(middleware::from_fn(localhost_middleware))
         .with_state(state)
         .layer(cors)
 }

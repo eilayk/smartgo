@@ -3,12 +3,13 @@ use axum::{
     Json, extract::{State, Path, Query}, debug_handler
 };
 use std::str::FromStr;
-use crate::models::{Stop, AppError, RouteSearch, StopTime, TimeQuery, Time, AppState, get_trip_number_from_id, StopTimeResponse, get_api_route_from_route_id};
+use crate::models::{get_api_route_from_route_id, get_trip_number_from_id, AppError, AppState, RouteSearch, Stop, StopTime, StopTimeResponse, Time, TimeQuery};
 
 #[debug_handler]
 pub async fn get_stops(
-    State(AppState { db, ..}): State<AppState>,
+    State(AppState { db_provider, ..}): State<AppState>,
 ) -> Result<Json<Vec<Stop>>, AppError> {
+    let db = db_provider.get_db().await;
     let resp = sqlx::query_as::<_, Stop>("
         SELECT * FROM stops
         ")
@@ -19,9 +20,10 @@ pub async fn get_stops(
 
 #[debug_handler]
 pub async fn get_stop(
-    State(AppState { db, ..}): State<AppState>,
+    State(AppState { db_provider, ..}): State<AppState>,
     Path(stop_id): Path<String>,
 ) -> Json<Stop> {
+    let db = db_provider.get_db().await;
     let resp = sqlx::query_as::<_, Stop>("
         SELECT * FROM stops WHERE stop_id = ?
         ")
@@ -32,10 +34,11 @@ pub async fn get_stop(
 }
 
 pub async fn search_for_stop(
-    State(AppState { db, ..}): State<AppState>,
+    State(AppState { db_provider, ..}): State<AppState>,
     Path(stop_name): Path<String>,
 ) -> Result<Json<Vec<Stop>>, AppError> {
     let arg = format!("%{}%", stop_name);
+    let db = db_provider.get_db().await;
     let resp = sqlx::query_as::<_, Stop>(
         "SELECT stop_id, stop_name FROM stops WHERE stop_name LIKE ? LIMIT 15"
     ).bind(arg)
@@ -45,8 +48,9 @@ pub async fn search_for_stop(
 }
 
 pub async fn get_all_routes(
-    State(AppState { db, ..}): State<AppState>,
+    State(AppState { db_provider, ..}): State<AppState>,
 ) -> Result<Json<Vec<RouteSearch>>, AppError> {
+    let db = db_provider.get_db().await;
     let resp = sqlx::query_as::<_, RouteSearch>("
         SELECT DISTINCT routes.long_name as route_name, routes.route_id from routes
     ")
@@ -57,9 +61,10 @@ pub async fn get_all_routes(
 
 pub async fn get_route_from_stop(
     // TODO: update db to only show train stops
-    State(AppState { db, ..}): State<AppState>,
+    State(AppState { db_provider, ..}): State<AppState>,
     Path(stop_id): Path<String>,
 ) -> Result<Json<Vec<RouteSearch>>, AppError> {
+    let db = db_provider.get_db().await;
     let resp = sqlx::query_as::<_, RouteSearch>("
         SELECT DISTINCT routes.long_name as route_name, routes.route_id from routes
             JOIN trips ON trips.route_id = routes.route_id
@@ -72,9 +77,10 @@ pub async fn get_route_from_stop(
 }
 
 pub async fn get_ordered_stops_for_route(
-    State(AppState { db, ..}): State<AppState>,
+    State(AppState { db_provider, ..}): State<AppState>,
     Path(route_id): Path<String>
 ) -> Result<Json<Vec<Stop>>, AppError> {
+    let db = db_provider.get_db().await;
     let resp = sqlx::query_as("
         SELECT DISTINCT stops.stop_id, stops.stop_name 
             FROM trips
@@ -93,16 +99,16 @@ pub async fn get_stop_times(
     Path((route_id, stop_id)): Path<(String, String)>,
     Query(time): Query<TimeQuery>
 ) -> Result<Json<StopTimeResponse>, AppError> {
-    tracing::debug!("time: {}, date: {}, stop: {}", time.time, time.day, stop_id);
+    let db = app_state.db_provider.get_db().await;
     let stop_name: String = sqlx::query("
         SELECT stop_name from stops WHERE stop_id = ?
         ").bind(&stop_id)
-        .fetch_one(&app_state.db).await?.try_get("stop_name")?;
+        .fetch_one(&db).await?.try_get("stop_name")?;
 
     let route_name: String = sqlx::query("
         SELECT long_name from routes WHERE route_id = ?
         ").bind(&route_id)
-        .fetch_one(&app_state.db).await?.try_get("long_name")?;
+        .fetch_one(&db).await?.try_get("long_name")?;
     
     let rows = sqlx::query("
         SELECT stop_times.arrival_time, trips.headsign, routes.short_name, trips.trip_id FROM stop_times
@@ -114,7 +120,7 @@ pub async fn get_stop_times(
             AND trips.service_id = ?
             ORDER BY stop_times.arrival_time
             ").bind(&stop_id).bind(&route_id).bind(&time.day)
-            .fetch_all(&app_state.db)
+            .fetch_all(&db)
             .await?;
 
     let mut results: Vec<StopTime> = Vec::new();
@@ -159,4 +165,11 @@ pub async fn get_stop_times(
         route_name,
         stop_times: results
     }))
+}
+
+pub async fn reload_db(
+    State(app_state): State<AppState>
+) -> Result<Json<String>, AppError> {
+    app_state.db_provider.reload().await;
+    Ok(Json("Database reloaded".to_string()))
 }

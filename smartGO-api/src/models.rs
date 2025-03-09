@@ -4,17 +4,18 @@ use axum::Json;
 use axum::response::{ IntoResponse, Response, };
 use axum::http::StatusCode;
 use sqlx::database::HasValueRef;
-use sqlx::{ FromRow, Database, Decode, Pool, Sqlite };
+use sqlx::{ FromRow, Database, Decode, };
 use serde::{ Serialize, Deserialize };
 use anyhow::Context;
 use std::error::Error;
 use anyhow::anyhow;
 
+use crate::db_provider::DbProvider;
 use crate::go_api::GoApi;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Pool<Sqlite>,
+    pub db_provider: DbProvider,
     pub api: GoApi,
 }
 

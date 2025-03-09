@@ -2,6 +2,7 @@ mod route;
 mod handlers;
 mod models;
 mod ext_api;
+mod db_provider;
 
 pub use crate::ext_api::go_api;
 
