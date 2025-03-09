@@ -79,7 +79,7 @@ impl GoApi {
     }
 
     pub fn get_request_path<S: AsRef<str> + Display>(&self, s: S) -> String {
-        format!("http://api.openmetrolinx.com/OpenDataAPI/api/V1/{}?key={}", s, self.api_key)
+        format!("https://api.openmetrolinx.com/OpenDataAPI/api/V1/{}?key={}", s, self.api_key)
     }
 
     pub async fn get_next_service(&self, stop_id: &str, route_id: &str, trip_number: &str) -> Option<Line> {
