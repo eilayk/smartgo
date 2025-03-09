@@ -39,8 +39,5 @@
     "vite": "^5.0.3",
     "vite-plugin-tailwind-purgecss": "0.2.0"
   },
-  "type": "module",
-  "engines": {
-    "node": ">=18.13 <19"
-  }
+  "type": "module"
 }

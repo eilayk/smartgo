@@ -1,11 +1,9 @@
-FROM rust:1.75-alpine as builder
+FROM rust:1 as builder
 WORKDIR /usr/src/app
-RUN apk add --no-cache musl-dev
 COPY . .
 RUN cargo install --path .
 
-FROM alpine:3.6
-WORKDIR /usr/src/app
+FROM gcr.io/distroless/cc-debian12
 COPY --from=builder /usr/local/cargo/bin/smartGO-api .
 COPY --from=builder /usr/src/app/app.db .
 EXPOSE 8080
