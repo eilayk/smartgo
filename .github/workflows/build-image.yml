@@ -1,0 +1,46 @@
+name: Build API Image
+on: [workflow_dispatch]
+jobs:
+    build-db:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+            
+            - name: Build sqliteDB
+              working-directory: ./gtfs-to-sqlite
+              run: cargo run
+            
+            - name: upload sqliteDB artifact
+              uses: actions/upload-artifact@v6
+              with:
+                  path: ./gtfs-to-sqlite/app.db
+                  if-no-files-found: "error: no database file found"
+    
+    build-image:
+        needs: build-db
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Download sqliteDB artifact
+              uses: actions/download-artifact@v7
+              with:
+                path: ./smartGO-api/
+            
+            - name: Log in to GHCR
+              uses: docker/login-action@v3
+              with:
+                registry: ghcr.io
+                username: ${{ github.actor }}
+                password: ${{ secrets.GITHUB_TOKEN }}
+            
+            - name: Build and push Docker image
+              uses: docker/build-push-action@v5
+              with:
+                context: ./smartGO-api
+                push: true
+                tags: smartgo/smartgo-api:latest
+                build-args: |
+                  GO_API_KEY=${{ secrets.GO_API_KEY }}
