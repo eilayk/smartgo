@@ -4,6 +4,8 @@ COPY . .
 RUN cargo install --path .
 
 FROM gcr.io/distroless/cc-debian12
+ARG GO_API_KEY
+ENV GO_API_KEY=$GO_API_KEY
 COPY --from=builder /usr/local/cargo/bin/smartGO-api .
 COPY --from=builder /usr/src/app/app.db .
 EXPOSE 8080
