@@ -15,11 +15,14 @@ jobs:
               uses: actions/upload-artifact@v6
               with:
                   path: ./gtfs-to-sqlite/app.db
-                  if-no-files-found: "error: no database file found"
+                  if-no-files-found: error
     
-    build-image:
+    build-and-push-image:
         needs: build-db
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
         steps:
             - name: Checkout repository
               uses: actions/checkout@v6
@@ -41,6 +44,4 @@ jobs:
               with:
                 context: ./smartGO-api
                 push: true
-                tags: smartgo/smartgo-api:latest
-                build-args: |
-                  GO_API_KEY=${{ secrets.GO_API_KEY }}
+                tags: ghcr.io/${{ github.repository_owner }}/smartgo-api:latest
