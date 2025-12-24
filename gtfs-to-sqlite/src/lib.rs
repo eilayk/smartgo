@@ -22,19 +22,18 @@ pub fn get_zip_byte_content_from_go() -> Bytes {
     bytes
 }
 
-pub fn create_zip_from_bytes(bytes: Bytes) -> fs::File{
+pub fn create_zip_from_bytes(bytes: Bytes) {
     let path = Path::new("./content/gtfs.zip");
     if path.exists() {
         fs::remove_file(path).expect("file system error: failed to remove existing zip file");
     }
     let mut file = fs::File::create(path).expect("file system error: failed to create zip file in local machine");
     file.write(&bytes).expect("file system error: failed to initialize zip file");
-    file
 }
 
 pub fn open_zip() -> fs::File{
     let path = Path::new("./content/gtfs.zip");
-    let file = fs::File::open(path).expect("file system error: failed to create zip file in local machine");
+    let file = fs::File::open(path).expect("file system error: failed to open zip file");
     file
 }
 
