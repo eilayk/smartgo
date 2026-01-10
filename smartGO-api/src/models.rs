@@ -1,14 +1,14 @@
+use anyhow::anyhow;
+use anyhow::Context;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
+use serde::{Deserialize, Serialize};
+use sqlx::database::HasValueRef;
+use sqlx::{Database, Decode, FromRow, Pool, Sqlite};
+use std::error::Error;
 use std::fmt::Display;
 use std::str::FromStr;
-use axum::Json;
-use axum::response::{ IntoResponse, Response, };
-use axum::http::StatusCode;
-use sqlx::database::HasValueRef;
-use sqlx::{ FromRow, Database, Decode, Pool, Sqlite };
-use serde::{ Serialize, Deserialize };
-use anyhow::Context;
-use std::error::Error;
-use anyhow::anyhow;
 
 use crate::go_api::GoApi;
 
@@ -20,21 +20,21 @@ pub struct AppState {
 
 // DATABASE AND RESPONSE STRUCTS
 #[derive(FromRow, Serialize)]
-#[serde(rename_all="camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct Stop {
     stop_id: String,
     stop_name: String,
 }
 
 #[derive(FromRow, Serialize)]
-#[serde(rename_all="camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct RouteSearch {
     route_name: String,
     route_id: String,
 }
 
 #[derive(Serialize)]
-#[serde(rename_all="camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct StopTimeResponse {
     pub stop_name: String,
     pub route_name: String,
@@ -42,7 +42,7 @@ pub struct StopTimeResponse {
 }
 
 #[derive(Serialize)]
-#[serde(rename_all="camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct StopTime {
     pub arrival_time: Time,
     pub headsign: String,
@@ -54,8 +54,8 @@ pub struct StopTime {
 }
 
 #[derive(Deserialize, Debug)]
-#[serde(rename_all="camelCase")]
-pub struct TimeQuery{
+#[serde(rename_all = "camelCase")]
+pub struct TimeQuery {
     pub day: String, // format: "yyyymmdd"
     pub time: Time,
 }
@@ -65,7 +65,7 @@ pub struct TimeQuery{
 pub struct Time {
     hour: u8,
     minute: u8,
-    second: u8
+    second: u8,
 }
 
 impl Time {
@@ -73,7 +73,8 @@ impl Time {
         // time is relevant if it's after, or within three minutes
         let self_duration = self.to_duration();
         let t_duration = t.to_duration();
-        self_duration > t_duration || (t_duration - self_duration) < std::time::Duration::new(60 * 3, 0) 
+        self_duration > t_duration
+            || (t_duration - self_duration) < std::time::Duration::new(60 * 3, 0)
     }
 
     // determine if cached value should be used
@@ -88,13 +89,11 @@ impl Time {
         let hour = self.hour as u64;
         let minute = self.minute as u64;
         let second = self.second as u64;
-        let seconds: u64 = hour * 60 * 60
-            + minute * 60
-            + second;
+        let seconds: u64 = hour * 60 * 60 + minute * 60 + second;
         std::time::Duration::new(seconds, 0)
     }
 
-    fn num_to_str (num: u8) -> String {
+    fn num_to_str(num: u8) -> String {
         if num < 10 {
             format!("0{}", num)
         } else {
@@ -108,9 +107,21 @@ impl FromStr for Time {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let err = "format time as 00:00:00";
         let parts: Vec<&str> = s.split(':').collect();
-        let hour: u8 = parts.get(0).context(err)?.parse().context("failed to parse hour")?;
-        let minute: u8 = parts.get(1).context(err)?.parse().context("failed to parse minute")?;
-        let second: u8 = parts.get(2).context(err)?.parse().context("failed to parse second")?;
+        let hour: u8 = parts
+            .get(0)
+            .context(err)?
+            .parse()
+            .context("failed to parse hour")?;
+        let minute: u8 = parts
+            .get(1)
+            .context(err)?
+            .parse()
+            .context("failed to parse minute")?;
+        let second: u8 = parts
+            .get(2)
+            .context(err)?
+            .parse()
+            .context("failed to parse second")?;
         Ok(Time {
             hour: hour,
             minute: minute,
@@ -123,7 +134,9 @@ impl FromStr for Time {
 // TODO: consider replacing this with serde_as crate
 impl<'de> Deserialize<'de> for Time {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: serde::Deserializer<'de> {
+    where
+        D: serde::Deserializer<'de>,
+    {
         let s: &str = Deserialize::deserialize(deserializer)?;
         Time::from_str(&s).map_err(|e| serde::de::Error::custom(e))
     }
@@ -131,7 +144,9 @@ impl<'de> Deserialize<'de> for Time {
 
 impl Serialize for Time {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer {
+    where
+        S: serde::Serializer,
+    {
         serializer.collect_str(self)
     }
 }
@@ -167,7 +182,9 @@ impl FromStr for DateTime {
 
 impl<'de> Deserialize<'de> for DateTime {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: serde::Deserializer<'de> {
+    where
+        D: serde::Deserializer<'de>,
+    {
         let s: &str = Deserialize::deserialize(deserializer)?;
         DateTime::from_str(&s).map_err(|e| serde::de::Error::custom(e))
     }
@@ -175,7 +192,11 @@ impl<'de> Deserialize<'de> for DateTime {
 
 impl Display for DateTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}:{}:{}", self.date, self.time.hour, self.time.minute, self.time.second)
+        write!(
+            f,
+            "{} {}:{}:{}",
+            self.date, self.time.hour, self.time.minute, self.time.second
+        )
     }
 }
 
@@ -186,7 +207,7 @@ impl<'r, DB: Database> Decode<'r, DB> for Time
 where
     // we want to delegate some of the work to string decoding so let's make sure strings
     // are supported by the database
-    &'r str: Decode<'r, DB>
+    &'r str: Decode<'r, DB>,
 {
     fn decode(
         value: <DB as HasValueRef<'r>>::ValueRef,
@@ -217,7 +238,8 @@ impl IntoResponse for AppError {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(format!("Failed with error: {}", self.0)),
-        ).into_response()
+        )
+            .into_response()
     }
 }
 
@@ -228,7 +250,7 @@ impl Display for AppError {
 }
 
 // This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
-// `Result<_, AppError>`. 
+// `Result<_, AppError>`.
 impl<E> From<E> for AppError
 where
     E: Into<anyhow::Error>,
@@ -236,14 +258,9 @@ where
     fn from(err: E) -> Self {
         Self(err.into())
     }
-} 
+}
 
 pub fn get_trip_number_from_id(trip_id: &str) -> Result<&str, AppError> {
     let v: Vec<&str> = trip_id.split('-').collect();
     Ok(v.get(2).context("trip_id format is invalid")?)
-}
-
-pub fn get_api_route_from_route_id(route_id: &str) -> Result<&str, AppError> {
-    let v: Vec<&str> = route_id.split('-').collect();
-    Ok(v.get(1).context("route_id format is invalid")?)
 }
