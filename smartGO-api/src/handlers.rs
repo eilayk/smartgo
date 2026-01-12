@@ -133,7 +133,7 @@ pub async fn get_stop_times(
     .try_get("long_name")?;
 
     let rows = sqlx::query("
-        SELECT stop_times.arrival_time, trips.headsign, routes.short_name, trips.trip_id FROM stop_times
+        SELECT stop_times.arrival_time, trips.headsign, routes.short_name, trips.trip_id, trips.direction FROM stop_times
             INNER JOIN stops ON stops.stop_id = stop_times.stop_id 
             INNER JOIN trips ON trips.trip_id = stop_times.trip_id
             INNER JOIN routes ON routes.route_id = trips.route_id
@@ -150,12 +150,14 @@ pub async fn get_stop_times(
         let arrival_time = Time::from_str(row.try_get("arrival_time")?)?;
         let headsign = row.try_get("headsign")?;
         let trip_id = row.try_get("trip_id")?;
+        let trip_direction: bool = row.try_get("direction")?;
 
         if arrival_time.is_relevant_to(&time.time) {
             let trip_number = get_trip_number_from_id(trip_id)?;
             let mut result = StopTime {
                 arrival_time,
                 headsign,
+                direction: trip_direction,
                 trip_number: trip_number.to_string(),
                 actual_platform: Option::None,
                 scheduled_platform: Option::None,
@@ -196,4 +198,3 @@ pub async fn get_stop_times(
         stop_times: results,
     }))
 }
-

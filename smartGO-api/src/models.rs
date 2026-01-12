@@ -47,6 +47,7 @@ pub struct StopTime {
     pub arrival_time: Time,
     pub headsign: String,
     pub trip_number: String,
+    pub direction: bool,
     pub scheduled_platform: Option<String>,
     pub actual_platform: Option<String>,
     pub actual_arrival_time: Option<Time>,
